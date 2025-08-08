@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Infographic: Power Topologies in EV Charging</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #F0F4F8;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 350px;
+            max-height: 400px;
+        }
+        @media (max-width: 768px) {
+            .chart-container {
+                height: 300px;
+            }
+        }
+        .kpi-card {
+            background-color: #ffffff;
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            text-align: center;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .kpi-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -2px rgb(0 0 0 / 0.1);
+        }
+        .flow-step {
+            background-color: #1E3A8A; /* Deep Blue from Palette */
+            color: #FFFFFF;
+            padding: 1rem 1.5rem;
+            border-radius: 0.5rem;
+            position: relative;
+            text-align: center;
+        }
+        .flow-arrow {
+            color: #1E3A8A;
+            font-size: 2.5rem;
+            line-height: 1;
+        }
+    </style>
+</head>
+<body class="text-gray-800">
+
+    <!-- 
+    Palette Name: Brilliant Blues
+    HEX Codes:
+    - Deep Blue: #1E3A8A
+    - Bright Blue: #3B82F6
+    - Light Blue: #BFDBFE
+    - Accent Teal: #14B8A6
+    - Neutral Gray: #6B7280
+    - Background: #F0F4F8
+    - White: #FFFFFF
+    -->
+    
+    <!-- 
+    Narrative Plan:
+    1.  Header: Title and brief introduction to EV charging electronics.
+    2.  Section 1: Foundational Concepts. Explain the two-stage power conversion model (PFC + DC-DC) using a custom HTML/CSS flow diagram.
+    3.  Section 2: On-Board Chargers (OBCs). Detail the common PFC and DC-DC topologies. Use bar charts to compare their characteristics (efficiency, bidirectionality).
+    4.  Section 3: Electric Vehicle Charging Stations (EVCS). Detail the high-power PFC and DC-DC topologies. Use radar charts to show multi-dimensional trade-offs.
+    5.  Section 4: The WBG Revolution. Explain the impact of SiC and GaN semiconductors. Use a donut chart to illustrate their ideal application domains.
+    6.  Section 5: Future Outlook. Discuss bidirectionality (V2G) and present strategic recommendations with a summary table.
+    -->
+
+    <!-- 
+    Visualization Plan:
+    - Two-Stage Power Conversion: Goal: Organize. Visualization: HTML/CSS Flow Chart. Justification: Clearly shows the process flow from Grid to Battery. NO SVG/Mermaid.
+    - OBC PFC Topology Comparison: Goal: Compare. Visualization: Bar Chart (Chart.js). Justification: Effectively compares efficiency and complexity across different PFC topologies. Canvas-based.
+    - OBC DC-DC Topology Comparison: Goal: Compare. Visualization: Bar Chart (Chart.js). Justification: Compares key metrics like efficiency and suitability for bidirectionality. Canvas-based.
+    - EVCS PFC Topology Trade-offs: Goal: Compare. Visualization: Radar Chart (Chart.js). Justification: Excellent for showing multi-dimensional trade-offs (cost, density, efficiency) for complex 3-phase topologies. Canvas-based.
+    - EVCS DC-DC Topology Comparison: Goal: Compare. Visualization: Bar Chart (Chart.js). Justification: Highlights the dominance of DAB for high-power, modular systems. Canvas-based.
+    - WBG Semiconductor Domains: Goal: Inform. Visualization: Donut Chart (Chart.js). Justification: Clearly shows the primary application areas for Si, SiC, and GaN based on voltage. Canvas-based.
+    - Bidirectional Capability: Goal: Inform. Visualization: Pictograph (Unicode Characters). Justification: Simple, effective visual representation of G2V vs. V2G power flow. NO SVG.
+    -->
+
+    <!-- No Mermaid JS or SVG graphics were used in this document. All charts are rendered on <canvas> elements by Chart.js, and diagrams are built with structured HTML and Tailwind CSS. -->
+
+    <!-- Modal Structure -->
+    <div id="geminiModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-lg md:max-w-xl max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-4">
+                <h3 id="modalTitle" class="text-xl font-bold text-[#1E3A8A]"></h3>
+                <button id="closeModal" class="text-gray-500 hover:text-gray-700 text-2xl font-bold">&times;</button>
+            </div>
+            <div id="modalContent" class="text-gray-700 text-sm">
+                <div id="loadingIndicator" class="text-center text-[#3B82F6] hidden">Loading...</div>
+                <div id="llmResponse"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container mx-auto p-4 md:p-8">
+
+        <header class="text-center mb-12">
+            <h1 class="text-4xl md:text-5xl font-bold text-[#1E3A8A] mb-4">The Power Within: A Technical Look at EV Charging Topologies</h1>
+            <p class="text-lg text-gray-600 max-w-3xl mx-auto">An infographic exploring the critical power electronics that drive On-Board Chargers (OBC) and DC Fast Charging Stations (EVCS), from core principles to the advanced semiconductors enabling the future of electric mobility.</p>
+        </header>
+
+        <main>
+            <!-- Section 1: Foundational Principles -->
+            <section id="foundations" class="mb-16">
+                <h2 class="text-3xl font-bold text-center mb-8 text-[#1E3A8A]">The Two-Stage Power Conversion Blueprint</h2>
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <p class="text-center text-gray-700 mb-8">Both OBCs and EVCSs share a fundamental architecture to safely and efficiently convert AC grid power to the DC power an EV battery needs. This process occurs in two main stages: Power Factor Correction (PFC) and isolated DC-DC conversion.</p>
+                    <div class="flex flex-col md:flex-row items-center justify-center space-y-4 md:space-y-0 md:space-x-4">
+                        <div class="text-center">
+                            <div class="text-2xl font-bold mb-2">⚡️</div>
+                            <div class="font-semibold">AC Grid</div>
+                        </div>
+                        <div class="flow-arrow hidden md:block">→</div>
+                         <div class="flow-arrow block md:hidden">↓</div>
+                        <div class="flow-step">
+                            <h3 class="font-bold text-lg">1. AC-DC (PFC) Stage</h3>
+                            <p class="text-sm text-blue-100">Converts AC to a stable DC voltage and ensures grid compatibility.</p>
+                        </div>
+                        <div class="flow-arrow hidden md:block">→</div>
+                        <div class="flow-arrow block md:hidden">↓</div>
+                        <div class="flow-step">
+                            <h3 class="font-bold text-lg">2. Isolated DC-DC Stage</h3>
+                            <p class="text-sm text-blue-100">Regulates voltage/current for the battery and ensures safety via isolation.</p>
+                        </div>
+                        <div class="flow-arrow hidden md:block">→</div>
+                        <div class="flow-arrow block md:hidden">↓</div>
+                        <div class="text-center">
+                             <div class="text-2xl font-bold mb-2">🔋</div>
+                            <div class="font-semibold">EV Battery</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section 2: On-Board Chargers (OBC) -->
+            <section id="obc" class="mb-16">
+                <h2 class="text-3xl font-bold text-center mb-8 text-[#1E3A8A]">Inside the Vehicle: On-Board Charger (OBC) Topologies</h2>
+                <p class="text-center text-gray-700 mb-8 max-w-3xl mx-auto">OBCs are constrained by vehicle space, weight, and thermal limits, driving the need for compact and highly efficient designs. The choice of topology is critical for performance.</p>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <!-- OBC PFC Topologies -->
+                    <div class="bg-white rounded-lg shadow-md p-6">
+                        <h3 class="text-xl font-bold text-center mb-4">OBC PFC Stage Comparison</h3>
+                        <p class="text-sm text-center text-gray-600 mb-4">The Totem-Pole PFC, enabled by Wide-Bandgap semiconductors, offers the highest efficiency and bidirectional capability, making it ideal for modern V2G-ready OBCs.</p>
+                        <div class="chart-container">
+                            <canvas id="obcPfcChart"></canvas>
+                        </div>
+                        <button id="explainObcPfcBtn" class="mt-4 w-full bg-[#14B8A6] text-white py-2 px-4 rounded-md hover:bg-[#0F766E] transition duration-300 font-semibold">Explain OBC PFC Topologies ✨</button>
+                    </div>
+                    <!-- OBC DC-DC Topologies -->
+                    <div class="bg-white rounded-lg shadow-md p-6">
+                        <h3 class="text-xl font-bold text-center mb-4">OBC DC-DC Stage Comparison</h3>
+                        <p class="text-sm text-center text-gray-600 mb-4">While the LLC converter provides peak efficiency, the CLLC variant extends this performance to bidirectional applications, a key trend in advanced OBC design.</p>
+                        <div class="chart-container">
+                            <canvas id="obcDcdcChart"></canvas>
+                        </div>
+                        <button id="explainObcDcdcBtn" class="mt-4 w-full bg-[#14B8A6] text-white py-2 px-4 rounded-md hover:bg-[#0F766E] transition duration-300 font-semibold">Explain OBC DC-DC Topologies ✨</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section 3: EV Charging Stations (EVCS) -->
+            <section id="evcs" class="mb-16">
+                <h2 class="text-3xl font-bold text-center mb-8 text-[#1E3A8A]">High-Power Hubs: EVCS Topologies</h2>
+                <p class="text-center text-gray-700 mb-8 max-w-3xl mx-auto">DC fast chargers prioritize raw power and modularity. Their three-phase topologies are designed for scalability and extreme reliability, handling hundreds of kilowatts.</p>
+                 <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <!-- EVCS PFC Topologies -->
+                    <div class="bg-white rounded-lg shadow-md p-6">
+                        <h3 class="text-xl font-bold text-center mb-4">3-Phase PFC Topology Trade-Offs</h3>
+                        <p class="text-sm text-center text-gray-600 mb-4">Multilevel converters like ANPC and TNPC dominate high-power EVCS design, offering a superior balance of efficiency, power density, and bidirectionality compared to simpler 2-level designs.</p>
+                        <div class="chart-container">
+                            <canvas id="evcsPfcChart"></canvas>
+                        </div>
+                        <button id="explainEvcsPfcBtn" class="mt-4 w-full bg-[#14B8A6] text-white py-2 px-4 rounded-md hover:bg-[#0F766E] transition duration-300 font-semibold">Explain EVCS PFC Topologies ✨</button>
+                    </div>
+                    <!-- EVCS DC-DC Topologies -->
+                    <div class="bg-white rounded-lg shadow-md p-6">
+                        <h3 class="text-xl font-bold text-center mb-4">High-Power DC-DC Stage Comparison</h3>
+                        <p class="text-sm text-center text-gray-600 mb-4">The Dual Active Bridge (DAB) is the industry workhorse for EVCS. Its modularity, high power-to-KVA rating, and inherent bidirectionality make it the clear choice for scalable DC fast charging.</p>
+                        <div class="chart-container">
+                            <canvas id="evcsDcdcChart"></canvas>
+                        </div>
+                        <button id="explainEvcsDcdcBtn" class="mt-4 w-full bg-[#14B8A6] text-white py-2 px-4 rounded-md hover:bg-[#0F766E] transition duration-300 font-semibold">Explain EVCS DC-DC Topologies ✨</button>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- Section 4: WBG Semiconductors -->
+            <section id="wbg" class="mb-16">
+                <h2 class="text-3xl font-bold text-center mb-8 text-[#1E3A8A]">The Semiconductor Revolution: Enabling a New Era</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+                    <div class="bg-white rounded-lg shadow-md p-6">
+                        <h3 class="text-xl font-bold text-center mb-4">Wide-Bandgap (WBG) Application Domains</h3>
+                         <p class="text-sm text-center text-gray-600 mb-4">The shift from Silicon (Si) to Silicon Carbide (SiC) and Gallium Nitride (GaN) is not an upgrade—it's a transformation. These materials enable higher frequencies, temperatures, and voltages, unlocking unprecedented efficiency and power density.</p>
+                        <div class="chart-container h-[300px] md:h-[350px]">
+                            <canvas id="wbgChart"></canvas>
+                        </div>
+                    </div>
+                     <div class="space-y-6">
+                        <div class="kpi-card">
+                            <div class="text-4xl font-bold text-[#1E3A8A]">SiC</div>
+                            <p class="text-gray-600 mt-2">Dominant in **high-voltage (>1kV)** applications like EV traction inverters and 800V charging stations due to superior thermal conductivity.</p>
+                        </div>
+                        <div class="kpi-card">
+                            <div class="text-4xl font-bold text-[#3B82F6]">GaN</div>
+                            <p class="text-gray-600 mt-2">Excels in **high-frequency (<650V)** systems, enabling ultra-compact and efficient OBCs and consumer fast chargers.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- Section 5: Future Outlook -->
+            <section id="future" class="text-center">
+                 <h2 class="text-3xl font-bold text-center mb-8 text-[#1E3A8A]">The Future is Bidirectional</h2>
+                 <p class="text-center text-gray-700 mb-8 max-w-3xl mx-auto">Vehicle-to-Grid (V2G) technology transforms EVs into mobile energy storage units, stabilizing the grid and creating new economic value. This capability is entirely dependent on bidirectional power topologies.</p>
+                 <div class="flex justify-center items-center space-x-8">
+                     <div class="text-center">
+                         <div class="text-5xl">⚡️➡️🔋</div>
+                         <h4 class="font-bold mt-2 text-lg">Grid-to-Vehicle (G2V)</h4>
+                         <p class="text-gray-600">Standard Charging</p>
+                     </div>
+                     <div class="text-5xl font-bold text-[#14B8A6]">↔️</div>
+                      <div class="text-center">
+                         <div class="text-5xl">🔋➡️🏠</div>
+                         <h4 class="font-bold mt-2 text-lg">Vehicle-to-Grid/Home (V2G/V2H)</h4>
+                         <p class="text-gray-600">Powering the Grid/Home</p>
+                     </div>
+                 </div>
+                 <button id="predictFutureTrendsBtn" class="mt-8 bg-[#3B82F6] text-white py-3 px-6 rounded-md hover:bg-[#2563EB] transition duration-300 font-bold text-lg">Predict Future Trends ✨</button>
+                 <div class="mt-12 bg-white rounded-lg shadow-lg p-6 max-w-4xl mx-auto">
+                    <h3 class="text-2xl font-bold text-[#1E3A8A] mb-4">Strategic Topology Recommendations</h3>
+                    <div class="text-left divide-y divide-gray-200">
+                        <div class="py-4">
+                            <h4 class="font-semibold text-lg text-gray-800">For High-Power V2G EVCS:</h4>
+                            <p class="text-gray-600">Combine a <span class="font-bold text-[#1E3A8A]">3-Level ANPC/TNPC PFC</span> with a modular <span class="font-bold text-[#1E3A8A]">Dual Active Bridge (DAB)</span> DC-DC stage for maximum efficiency, scalability, and bidirectionality.</p>
+                        </div>
+                        <div class="py-4">
+                            <h4 class="font-semibold text-lg text-gray-800">For Compact Bidirectional OBC:</h4>
+                            <p class="text-gray-600">Utilize a <span class="font-bold text-[#3B82F6]">GaN-based Totem-Pole PFC</span> and a <span class="font-bold text-[#3B82F6]">CLLC</span> DC-DC converter to achieve the highest power density and V2G-readiness in a small footprint.</p>
+                        </div>
+                    </div>
+                 </div>
+            </section>
+        </main>
+
+    </div>
+
+    <script>
+        const brilliantBlues = {
+            deepBlue: '#1E3A8A',
+            brightBlue: '#3B82F6',
+            lightBlue: '#BFDBFE',
+            accentTeal: '#14B8A6',
+            neutralGray: '#6B7280'
+        };
+
+        function wrapLabel(label) {
+            const maxLen = 16;
+            if (label.length <= maxLen) {
+                return label;
+            }
+            const words = label.split(' ');
+            const lines = [];
+            let currentLine = '';
+            for (const word of words) {
+                if ((currentLine + ' ' + word).trim().length > maxLen) {
+                    lines.push(currentLine.trim());
+                    currentLine = word;
+                } else {
+                    currentLine = (currentLine + ' ' + word).trim();
+                }
+            }
+            if (currentLine) {
+                lines.push(currentLine.trim());
+            }
+            return lines;
+        }
+
+        const tooltipTitleCallback = (tooltipItems) => {
+            const item = tooltipItems[0];
+            let label = item.chart.data.labels[item.dataIndex];
+            if (Array.isArray(label)) {
+                return label.join(' ');
+            }
+            return label;
+        };
+        
+        const defaultChartOptions = {
+            maintainAspectRatio: false,
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        color: brilliantBlues.neutralGray,
+                        font: {
+                           size: 12
+                        }
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        title: tooltipTitleCallback
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: {
+                        color: '#E5E7EB'
+                    },
+                    ticks: {
+                        color: brilliantBlues.neutralGray
+                    }
+                },
+                x: {
+                    grid: {
+                        display: false
+                    },
+                    ticks: {
+                        color: brilliantBlues.neutralGray,
+                        maxRotation: 0,
+                        minRotation: 0
+                    }
+                }
+            }
+        };
+
+        // OBC PFC Chart
+        const obcPfcCtx = document.getElementById('obcPfcChart').getContext('2d');
+        new Chart(obcPfcCtx, {
+            type: 'bar',
+            data: {
+                labels: ['Classic Boost', 'Dual-Boost', 'Totem-Pole (WBG)'],
+                datasets: [{
+                    label: 'Relative Efficiency',
+                    data: [95, 97, 99],
+                    backgroundColor: brilliantBlues.lightBlue,
+                    borderColor: brilliantBlues.brightBlue,
+                    borderWidth: 2
+                }, {
+                    label: 'Bidirectional Capability',
+                    data: [0, 0, 100],
+                    backgroundColor: brilliantBlues.accentTeal,
+                    borderColor: '#0F766E',
+                    borderWidth: 2
+                }]
+            },
+            options: defaultChartOptions
+        });
+
+        // OBC DC-DC Chart
+        const obcDcdcCtx = document.getElementById('obcDcdcChart').getContext('2d');
+        new Chart(obcDcdcCtx, {
+            type: 'bar',
+            data: {
+                labels: ['PSFB', 'LLC', 'CLLC'],
+                datasets: [{
+                    label: 'Peak Efficiency',
+                    data: [96, 98, 97.5],
+                    backgroundColor: brilliantBlues.lightBlue,
+                    borderColor: brilliantBlues.brightBlue,
+                    borderWidth: 2
+                }, {
+                    label: 'Bidirectional Capability',
+                    data: [50, 0, 100],
+                    backgroundColor: brilliantBlues.accentTeal,
+                    borderColor: '#0F766E',
+                    borderWidth: 2
+                }]
+            },
+            options: defaultChartOptions
+        });
+        
+        // EVCS PFC Chart
+        const evcsPfcCtx = document.getElementById('evcsPfcChart').getContext('2d');
+        new Chart(evcsPfcCtx, {
+            type: 'radar',
+            data: {
+                labels: ['Efficiency', 'Power Density', 'Cost', 'Bidirectional', 'Control Simplicity'],
+                datasets: [{
+                    label: '2-Level',
+                    data: [3, 2, 5, 5, 5],
+                    fill: true,
+                    backgroundColor: 'rgba(191, 219, 254, 0.4)',
+                    borderColor: brilliantBlues.brightBlue,
+                    pointBackgroundColor: brilliantBlues.brightBlue,
+                }, {
+                    label: '3-Level ANPC/TNPC',
+                    data: [5, 5, 3, 5, 3],
+                    fill: true,
+                    backgroundColor: 'rgba(20, 184, 166, 0.4)',
+                    borderColor: brilliantBlues.accentTeal,
+                    pointBackgroundColor: brilliantBlues.accentTeal,
+                }]
+            },
+            options: {
+                ...defaultChartOptions,
+                scales: {
+                    r: {
+                        angleLines: { color: '#E5E7EB' },
+                        grid: { color: '#E5E7EB' },
+                        pointLabels: { color: brilliantBlues.neutralGray, font: { size: 11 } },
+                        ticks: { display: false, stepSize: 1 },
+                        suggestedMin: 0,
+                        suggestedMax: 5
+                    }
+                }
+            }
+        });
+
+        // EVCS DC-DC Chart
+        const evcsDcdcCtx = document.getElementById('evcsDcdcChart').getContext('2d');
+        new Chart(evcsDcdcCtx, {
+            type: 'bar',
+            data: {
+                labels: ['LLC/CLLC', 'DAB'],
+                datasets: [{
+                    label: 'Power Modularity / Scalability',
+                    data: [40, 95],
+                    backgroundColor: brilliantBlues.lightBlue,
+                    borderColor: brilliantBlues.brightBlue,
+                    borderWidth: 2
+                }, {
+                    label: 'Power-to-KVA Rating',
+                    data: [50, 90],
+                    backgroundColor: brilliantBlues.accentTeal,
+                    borderColor: '#0F766E',
+                    borderWidth: 2
+                }]
+            },
+            options: defaultChartOptions
+        });
+
+        // WBG Chart
+        const wbgCtx = document.getElementById('wbgChart').getContext('2d');
+        new Chart(wbgCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Si (<600V, Low Freq)', 'GaN (<650V, High Freq)', 'SiC (>1kV, High Power)'],
+                datasets: [{
+                    label: 'Application Domain',
+                    data: [35, 30, 35],
+                    backgroundColor: [
+                        brilliantBlues.neutralGray,
+                        brilliantBlues.brightBlue,
+                        brilliantBlues.deepBlue
+                    ],
+                    hoverOffset: 4
+                }]
+            },
+            options: {
+                maintainAspectRatio: false,
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            color: brilliantBlues.neutralGray,
+                            font: { size: 12 },
+                            generateLabels: function(chart) {
+                                const data = chart.data;
+                                if (data.labels.length && data.datasets.length) {
+                                    return data.labels.map(function(label, i) {
+                                        const meta = chart.getDatasetMeta(0);
+                                        const style = meta.controller.getStyle(i);
+                                        return {
+                                            text: wrapLabel(label),
+                                            fillStyle: style.backgroundColor,
+                                            strokeStyle: style.borderColor,
+                                            lineWidth: style.borderWidth,
+                                            hidden: isNaN(data.datasets[0].data[i]) || meta.data[i].hidden,
+                                            index: i
+                                        };
+                                    });
+                                }
+                                return [];
+                            }
+                        }
+                    },
+                    tooltip: {
+                         callbacks: {
+                            title: tooltipTitleCallback
+                        }
+                    }
+                }
+            }
+        });
+
+        // Modal elements
+        const geminiModal = document.getElementById('geminiModal');
+        const closeModalBtn = document.getElementById('closeModal');
+        const modalTitle = document.getElementById('modalTitle');
+        const loadingIndicator = document.getElementById('loadingIndicator');
+        const llmResponse = document.getElementById('llmResponse');
+
+        closeModalBtn.onclick = () => {
+            geminiModal.classList.add('hidden');
+            llmResponse.innerHTML = '';
+            loadingIndicator.classList.add('hidden');
+        };
+
+        async function callGeminiAPI(prompt) {
+            loadingIndicator.classList.remove('hidden');
+            llmResponse.innerHTML = '';
+
+            let chatHistory = [];
+            chatHistory.push({ role: "user", parts: [{ text: prompt }] });
+            const payload = { contents: chatHistory };
+            const apiKey = ""; // Canvas will automatically provide this at runtime
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+
+            let retries = 0;
+            const maxRetries = 5;
+            const baseDelay = 1000; // 1 second
+
+            while (retries < maxRetries) {
+                try {
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (response.status === 429) { // Too Many Requests
+                        const delay = baseDelay * Math.pow(2, retries) + Math.random() * 500;
+                        console.warn(`Rate limit hit. Retrying in ${delay}ms...`);
+                        await new Promise(res => setTimeout(res, delay));
+                        retries++;
+                        continue;
+                    }
+
+                    const result = await response.json();
+                    if (result.candidates && result.candidates.length > 0 &&
+                        result.candidates[0].content && result.candidates[0].content.parts &&
+                        result.candidates[0].content.parts.length > 0) {
+                        return result.candidates[0].content.parts[0].text;
+                    } else {
+                        console.error("Unexpected API response structure:", result);
+                        return "Could not generate response. Please try again.";
+                    }
+                } catch (error) {
+                    console.error("Error calling Gemini API:", error);
+                    const delay = baseDelay * Math.pow(2, retries) + Math.random() * 500;
+                    console.warn(`API call failed. Retrying in ${delay}ms...`);
+                    await new Promise(res => setTimeout(res, delay));
+                    retries++;
+                }
+            }
+            return "Failed to get a response after multiple retries. Please try again later.";
+        }
+
+        // Event Listeners for Explain Topology buttons
+        document.getElementById('explainObcPfcBtn').addEventListener('click', async () => {
+            modalTitle.textContent = 'OBC PFC Topologies Explained';
+            geminiModal.classList.remove('hidden');
+            const prompt = "Explain the power factor correction topologies: Classic Boost, Dual-Boost, and Totem-Pole (WBG), as used in On-Board Chargers. Focus on their key characteristics for efficiency and bidirectionality. Each explanation should be a short paragraph, no more than 40 words.";
+            llmResponse.innerHTML = await callGeminiAPI(prompt);
+            loadingIndicator.classList.add('hidden');
+        });
+
+        document.getElementById('explainObcDcdcBtn').addEventListener('click', async () => {
+            modalTitle.textContent = 'OBC DC-DC Topologies Explained';
+            geminiModal.classList.remove('hidden');
+            const prompt = "Explain the isolated DC-DC converter topologies: PSFB, LLC, and CLLC, as used in On-Board Chargers. Focus on their key characteristics for peak efficiency and bidirectional capability. Each explanation should be a short paragraph, no more than 40 words.";
+            llmResponse.innerHTML = await callGeminiAPI(prompt);
+            loadingIndicator.classList.add('hidden');
+        });
+
+        document.getElementById('explainEvcsPfcBtn').addEventListener('click', async () => {
+            modalTitle.textContent = 'EVCS PFC Topologies Explained';
+            geminiModal.classList.remove('hidden');
+            const prompt = "Explain the three-phase power factor correction topologies: 2-Level and 3-Level ANPC/TNPC, as used in EV Charging Stations. Focus on their characteristics for efficiency, power density, cost, bidirectionality, and control simplicity. Each explanation should be a short paragraph, no more than 40 words.";
+            llmResponse.innerHTML = await callGeminiAPI(prompt);
+            loadingIndicator.classList.add('hidden');
+        });
+
+        document.getElementById('explainEvcsDcdcBtn').addEventListener('click', async () => {
+            modalTitle.textContent = 'EVCS DC-DC Topologies Explained';
+            geminiModal.classList.remove('hidden');
+            const prompt = "Explain the high-power DC-DC converter topologies: LLC/CLLC and DAB, as used in EV Charging Stations. Focus on their characteristics for power modularity/scalability and power-to-KVA rating. Each explanation should be a short paragraph, no more than 40 words.";
+            llmResponse.innerHTML = await callGeminiAPI(prompt);
+            loadingIndicator.classList.add('hidden');
+        });
+
+        // Event Listener for Predict Future Trends button
+        document.getElementById('predictFutureTrendsBtn').addEventListener('click', async () => {
+            modalTitle.textContent = 'Emerging EV Charging Trends';
+            geminiModal.classList.remove('hidden');
+            const prompt = "Identify 3 significant emerging trends or future directions in electric vehicle charging station and on-board charger technology, beyond bidirectionality. For each trend, provide a concise explanation (20-30 words).";
+            llmResponse.innerHTML = await callGeminiAPI(prompt);
+            loadingIndicator.classList.add('hidden');
+        });
+
+    </script>
+</body>
+</html>
